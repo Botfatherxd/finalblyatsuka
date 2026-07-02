@@ -818,3 +818,93 @@ runService.RenderStepped:Connect(function()
 end)
 
 print("[FOV AIM] ДЛЯ МАРДЕРА ЗАГРУЖЕН, СУКА!")
+
+-- ============================================================
+-- БАНИХОП (РАЗГОН ДО 50, НЕ КИКАЕТ)
+-- ============================================================
+local bhopEnabled = false
+local currentSpeed = 16
+local maxSpeed = 50
+local speedIncrement = 0.5
+
+-- СОЗДАЁМ ТОГГЛ В РАЗДЕЛЕ COMBAT
+local function createBhopToggle()
+    local labelText = Instance.new("TextLabel")
+    labelText.Size = UDim2.new(0.7, 0, 0, 20)
+    labelText.Position = UDim2.new(0, 0, 0, 115)  -- под Anti-Aim
+    labelText.BackgroundTransparency = 1
+    labelText.Text = "Банихоп (разгон до 50)"
+    labelText.TextColor3 = Color3.fromRGB(220, 220, 220)
+    labelText.TextSize = 12
+    labelText.Font = Enum.Font.Gotham
+    labelText.TextXAlignment = Enum.TextXAlignment.Left
+    labelText.Parent = combatTab
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 22, 0, 22)
+    toggleButton.Position = UDim2.new(0.85, 0, 0, 114)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    toggleButton.BackgroundTransparency = 0.4
+    toggleButton.Text = ""
+    toggleButton.Parent = combatTab
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 4)
+    toggleCorner.Parent = toggleButton
+
+    toggleButton.MouseButton1Click:Connect(function()
+        bhopEnabled = not bhopEnabled
+        toggleButton.BackgroundColor3 = bhopEnabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
+        toggleButton.BackgroundTransparency = bhopEnabled and 0.1 or 0.4
+        if not bhopEnabled then
+            currentSpeed = 16
+            local char = player.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.WalkSpeed = 16
+            end
+        end
+    end)
+end
+
+createBhopToggle()
+
+-- ===== ЛОГИКА БАНИХОПА =====
+runService.Heartbeat:Connect(function()
+    if not bhopEnabled then return end
+    
+    local char = player.Character
+    if not char or not char:FindFirstChild("Humanoid") or not char:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+    
+    local humanoid = char.Humanoid
+    local hrp = char.HumanoidRootPart
+    
+    -- ПРОВЕРКА: на земле ли персонаж?
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {char}
+    local rayResult = workspace:Raycast(hrp.Position, Vector3.new(0, -3, 0), raycastParams)
+    local isGrounded = rayResult and rayResult.Distance < 3
+    
+    if isGrounded and humanoid.MoveDirection.Magnitude > 0 then
+        -- РАЗГОН
+        if currentSpeed < maxSpeed then
+            currentSpeed = math.min(currentSpeed + speedIncrement, maxSpeed)
+        end
+        humanoid.WalkSpeed = currentSpeed
+    else
+        -- ПЛАВНОЕ ЗАМЕДЛЕНИЕ В ВОЗДУХЕ
+        if currentSpeed > 16 then
+            currentSpeed = math.max(currentSpeed - 0.3, 16)
+            humanoid.WalkSpeed = currentSpeed
+        end
+    end
+    
+    -- АВТОПРЫЖОК (если бежишь и на земле)
+    if isGrounded and humanoid.MoveDirection.Magnitude > 0 then
+        humanoid.Jump = true
+    end
+end)
+
+print("[BANIHOP] ЗАГРУЖЕН, РАЗГОН ДО 50, СУКА!")
