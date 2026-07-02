@@ -1,7 +1,13 @@
 -- ============================================================
--- KEBABICH STUDIO MM2 CHAMS v14.0 (ПЕРЕПИСАНО С НУЛЯ, СУКА!)
--- ДИЗАЙН: ЧЁРНЫЙ МИНИМАЛИЗМ, КРАСНЫЕ КНОПКИ, ОВАЛЬНАЯ КНОПКА
--- ФИЧИ: ESP + SILENT AIM + ANTI-AIM + ТРОЛЛЬ-КНОПКА
+-- KEBABICH STUDIO MM2 CHAMS v15.0 (ПОЛНЫЙ ПЕРЕПИС, СУКА!)
+-- ДИЗАЙН: ЧЁРНЫЙ МИНИМАЛИЗМ, КРАСНЫЕ КНОПКИ
+-- ФИЧИ: ESP (MURDER/SHERIFF/INNOCENT/SELF/DROPPED HUI)
+--        + SILENT AIM (ПК/ТЕЛЕФОН)
+--        + ANTI-AIM (ВРАЩЕНИЕ)
+--        + БАНИХОП (РАЗГОН ДО 50)
+--        + УВЕДОМЛЕНИЕ "ШЕРИФФ СДОХ"
+--        + ВЫПАВШИЙ ХУЙ ТВОЕГО ОТЦА (подсветка оружия)
+--        + ТРОЛЛЬ-КНОПКА "ВЫЕБАТЬ МАТЬ РАЗРАБОТЧИКА"
 -- АВТОР: KEBABICH (ПОДПИШИСЬ, ПИЗДА!)
 -- ============================================================
 
@@ -17,17 +23,22 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local tweenService = game:GetService("TweenService")
 local userInput = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
+local lighting = game:GetService("Lighting")
 
 -- ===== РАЗМЫТИЕ =====
 local blur = Instance.new("BlurEffect")
 blur.Size = 0
-blur.Parent = game:GetService("Lighting")
+blur.Parent = lighting
 
 -- ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
 local menuVisible = false
 local silentAimEnabled = false
 local antiAimEnabled = false
+local bhopEnabled = false
 local isMobile = userInput.TouchEnabled
+local currentSpeed = 16
+local maxSpeed = 50
+local speedIncrement = 0.5
 
 -- ===== ESP =====
 local ESP = {
@@ -69,6 +80,7 @@ end
 
 -- ===== ОСНОВНОЙ ЦИКЛ ESP =====
 runService.RenderStepped:Connect(function()
+    -- Подсветка игроков
     for _, plr in pairs(game.Players:GetPlayers()) do
         if plr.Character and plr.Character:FindFirstChild("Humanoid") then
             local role = getPlayerRole(plr)
@@ -103,12 +115,61 @@ runService.RenderStepped:Connect(function()
             end
         end
     end
+    
+    -- ВЫПАВШИЙ ХУЙ ТВОЕГО ОТЦА (подсветка оружия на земле)
+    if ESP.DroppedGun then
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Tool") or obj:IsA("Part") then
+                local name = obj.Name:lower()
+                if name:find("gun") or name:find("pistol") or name:find("knife") or name:find("оружие") then
+                    local highlight = obj:FindFirstChild("DroppedGunHighlight")
+                    if not highlight then
+                        highlight = Instance.new("Highlight")
+                        highlight.Name = "DroppedGunHighlight"
+                        highlight.Parent = obj
+                        highlight.FillColor = Color3.fromRGB(255, 150, 0)
+                        highlight.OutlineColor = Color3.fromRGB(255, 150, 0)
+                        highlight.FillTransparency = 0.3
+                        highlight.Enabled = true
+                    end
+                end
+            end
+        end
+    else
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Tool") or obj:IsA("Part") then
+                local highlight = obj:FindFirstChild("DroppedGunHighlight")
+                if highlight then highlight:Destroy() end
+            end
+        end
+    end
 end)
 
 game.Players.PlayerRemoving:Connect(function(plr)
     if plr.Character then
         local highlight = plr.Character:FindFirstChild("ESP_Highlight")
         if highlight then highlight:Destroy() end
+    end
+end)
+
+-- ===== УВЕДОМЛЕНИЕ "ШЕРИФФ СДОХ" =====
+game.Players.PlayerRemoving:Connect(function(plr)
+    if plr ~= player then
+        local role = getPlayerRole(plr)
+        if role == "Sheriff" then
+            local notification = Instance.new("TextLabel")
+            notification.Size = UDim2.new(1, 0, 1, 0)
+            notification.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+            notification.BackgroundTransparency = 0.2
+            notification.Text = "ШЕРИФФ СДОХ НАХУЙ!"
+            notification.TextColor3 = Color3.fromRGB(255, 0, 0)
+            notification.TextScaled = true
+            notification.Font = Enum.Font.GothamBold
+            notification.Parent = gui
+            
+            task.wait(1.5)
+            notification:Destroy()
+        end
     end
 end)
 
@@ -324,7 +385,7 @@ createToggle(visualsTab, 122, "Выпавший хуй твоего отца", f
     ESP.DroppedGun = enabled
 end)
 
--- ===== ТРОЛЛЬ-КНОПКА =====
+-- ===== ТРОЛЛЬ-КНОПКА "ВЫЕБАТЬ МАТЬ РАЗРАБОТЧИКА" =====
 local trollLabel = Instance.new("TextLabel")
 trollLabel.Size = UDim2.new(0.7, 0, 0, 20)
 trollLabel.Position = UDim2.new(0, 0, 0, 155)
@@ -349,6 +410,20 @@ trollCorner.CornerRadius = UDim.new(0, 4)
 trollCorner.Parent = trollButton
 
 local function createPanicWindow()
+    -- Сначала надпись
+    local firstLabel = Instance.new("TextLabel")
+    firstLabel.Size = UDim2.new(1, 0, 1, 0)
+    firstLabel.BackgroundTransparency = 1
+    firstLabel.Text = "Что ты сказал о моей мамочке?"
+    firstLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
+    firstLabel.TextScaled = true
+    firstLabel.Font = Enum.Font.GothamBold
+    firstLabel.Parent = gui
+    
+    task.wait(1)
+    firstLabel:Destroy()
+    
+    -- Основное паническое окно
     local panicFrame = Instance.new("Frame")
     panicFrame.Size = UDim2.new(0, 300, 0, 180)
     panicFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
@@ -419,14 +494,12 @@ trollButton.MouseButton1Click:Connect(function()
 end)
 
 -- ===== COMBAT =====
--- ===== COMBAT =====
 local combatTab = Instance.new("Frame")
 combatTab.Size = UDim2.new(1, 0, 1, 0)
 combatTab.BackgroundTransparency = 1
 combatTab.Visible = false
 combatTab.Parent = tabContainer
 
--- КНОПКИ ДЛЯ COMBAT
 local function createCombatToggle(parent, yPos, label, callback)
     local labelText = Instance.new("TextLabel")
     labelText.Size = UDim2.new(0.7, 0, 0, 20)
@@ -437,30 +510,32 @@ local function createCombatToggle(parent, yPos, label, callback)
     labelText.TextSize = 12
     labelText.Font = Enum.Font.Gotham
     labelText.TextXAlignment = Enum.TextXAlignment.Left
-    labelText.Parent = parent
-
+    labelText.Parent = combatTab
+    
     local toggleButton = Instance.new("TextButton")
     toggleButton.Size = UDim2.new(0, 22, 0, 22)
     toggleButton.Position = UDim2.new(0.85, 0, 0, yPos - 1)
     toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     toggleButton.BackgroundTransparency = 0.4
     toggleButton.Text = ""
-    toggleButton.Parent = parent
-
+    toggleButton.Parent = combatTab
+    
     local toggleCorner = Instance.new("UICorner")
     toggleCorner.CornerRadius = UDim.new(0, 4)
     toggleCorner.Parent = toggleButton
-
+    
+    local enabled = false
+    
     toggleButton.MouseButton1Click:Connect(function()
-        local enabled = not toggleButton.Enabled
-        toggleButton.Enabled = enabled
+        enabled = not enabled
         toggleButton.BackgroundColor3 = enabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
         toggleButton.BackgroundTransparency = enabled and 0.1 or 0.4
         callback(enabled)
     end)
+    
+    return toggleButton
 end
 
--- СОЗДАЁМ КНОПКИ
 createCombatToggle(combatTab, 10, "Аим как у бога", function(enabled)
     silentAimEnabled = enabled
 end)
@@ -478,54 +553,6 @@ createCombatToggle(combatTab, 80, "Банихоп (разгон до 50)", funct
             char.Humanoid.WalkSpeed = 16
         end
     end
-end)
-local combatTab = Instance.new("Frame")
-combatTab.Size = UDim2.new(1, 0, 1, 0)
-combatTab.BackgroundTransparency = 1
-combatTab.Visible = false
-combatTab.Parent = tabContainer
-
--- SILENT AIM TOGGLE
-local function createCombatToggle(parent, yPos, label, callback)
-    local labelText = Instance.new("TextLabel")
-    labelText.Size = UDim2.new(0.7, 0, 0, 20)
-    labelText.Position = UDim2.new(0, 0, 0, yPos)
-    labelText.BackgroundTransparency = 1
-    labelText.Text = label
-    labelText.TextColor3 = Color3.fromRGB(220, 220, 220)
-    labelText.TextSize = 12
-    labelText.Font = Enum.Font.Gotham
-    labelText.TextXAlignment = Enum.TextXAlignment.Left
-    labelText.Parent = parent
-    
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 22, 0, 22)
-    toggleButton.Position = UDim2.new(0.85, 0, 0, yPos - 1)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    toggleButton.BackgroundTransparency = 0.4
-    toggleButton.Text = ""
-    toggleButton.Parent = parent
-    
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 4)
-    toggleCorner.Parent = toggleButton
-    
-    local enabled = false
-    
-    toggleButton.MouseButton1Click:Connect(function()
-        enabled = not enabled
-        toggleButton.BackgroundColor3 = enabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
-        toggleButton.BackgroundTransparency = enabled and 0.1 or 0.4
-        callback(enabled)
-    end)
-end
-
-createCombatToggle(combatTab, 10, "Аим как у бога", function(enabled)
-    silentAimEnabled = enabled
-end)
-
-createCombatToggle(combatTab, 45, "Anti-Aim (вертеться)", function(enabled)
-    antiAimEnabled = enabled
 end)
 
 -- ===== SILENT AIM =====
@@ -562,7 +589,9 @@ local function getNearestMurderer()
     return nearest
 end
 
+-- ===== ОСНОВНОЙ ЦИКЛ (АИМ + АНТИ-АИМ) =====
 runService.RenderStepped:Connect(function()
+    -- Silent Aim
     if silentAimEnabled and isAimActive() then
         local target = getNearestMurderer()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
@@ -575,6 +604,7 @@ runService.RenderStepped:Connect(function()
         end
     end
     
+    -- Anti-Aim (верчение)
     if antiAimEnabled then
         local character = player.Character
         if character and character:FindFirstChild("HumanoidRootPart") then
@@ -586,7 +616,43 @@ runService.RenderStepped:Connect(function()
     end
 end)
 
--- ===== ANANAS =====
+-- ===== БАНИХОП (РАЗГОН ДО 50) =====
+runService.Heartbeat:Connect(function()
+    if not bhopEnabled then return end
+    
+    local char = player.Character
+    if not char or not char:FindFirstChild("Humanoid") or not char:FindFirstChild("HumanoidRootPart") then
+        return
+    end
+    
+    local humanoid = char.Humanoid
+    local hrp = char.HumanoidRootPart
+    
+    -- Проверка на земле
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+    raycastParams.FilterDescendantsInstances = {char}
+    local rayResult = workspace:Raycast(hrp.Position, Vector3.new(0, -3, 0), raycastParams)
+    local isGrounded = rayResult and rayResult.Distance < 3
+    
+    if isGrounded and humanoid.MoveDirection.Magnitude > 0 then
+        if currentSpeed < maxSpeed then
+            currentSpeed = math.min(currentSpeed + speedIncrement, maxSpeed)
+        end
+        humanoid.WalkSpeed = currentSpeed
+    else
+        if currentSpeed > 16 then
+            currentSpeed = math.max(currentSpeed - 0.3, 16)
+            humanoid.WalkSpeed = currentSpeed
+        end
+    end
+    
+    if isGrounded and humanoid.MoveDirection.Magnitude > 0 then
+        humanoid.Jump = true
+    end
+end)
+
+-- ===== ANANAS (ВКЛАДКА) =====
 local ananasTab = Instance.new("Frame")
 ananasTab.Size = UDim2.new(1, 0, 1, 0)
 ananasTab.BackgroundTransparency = 1
@@ -634,18 +700,18 @@ for cat, btn in pairs(catButtons) do
     btn.MouseButton1Click:Connect(function()
         if cat == activeTab then return end
         activeTab = cat
-
+        
         for _, b in pairs(catButtons) do
             b.TextColor3 = Color3.fromRGB(130, 130, 130)
         end
         btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
+        
         for _, child in pairs(tabContainer:GetChildren()) do
             if child:IsA("Frame") then
                 child.Visible = false
             end
         end
-
+        
         if cat == "VISUALS" then
             visualsTab.Visible = true
         elseif cat == "COMBAT" then
@@ -682,199 +748,3 @@ userInput.InputBegan:Connect(function(input)
 end)
 
 print("[KEBABICH] СКРИПТ ЗАГРУЖЕН, ВСЁ РАБОТАЕТ, СУКА!")
-
-
--- ============================================================
--- FOV AIM ДЛЯ МАРДЕРА (НЕ ПЕРЕПИСЫВАЙ, ПРОСТО ВСТАВЬ В КОНЕЦ!)
--- ============================================================
-
-local fovAimEnabled = false
-local fovValue = 40  -- значение по умолчанию
-
--- СОЗДАЁМ ЭЛЕМЕНТЫ МЕНЮ ДЛЯ FOV AIM (в раздел COMBAT)
-local function createFovAimToggle()
-    local labelText = Instance.new("TextLabel")
-    labelText.Size = UDim2.new(0.7, 0, 0, 20)
-    labelText.Position = UDim2.new(0, 0, 0, 80)  -- чуть ниже Anti-Aim
-    labelText.BackgroundTransparency = 1
-    labelText.Text = "FOV Aim для мардера"
-    labelText.TextColor3 = Color3.fromRGB(220, 220, 220)
-    labelText.TextSize = 12
-    labelText.Font = Enum.Font.Gotham
-    labelText.TextXAlignment = Enum.TextXAlignment.Left
-    labelText.Parent = combatTab
-
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 22, 0, 22)
-    toggleButton.Position = UDim2.new(0.85, 0, 0, 79)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    toggleButton.BackgroundTransparency = 0.4
-    toggleButton.Text = ""
-    toggleButton.Parent = combatTab
-
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 4)
-    toggleCorner.Parent = toggleButton
-
-    toggleButton.MouseButton1Click:Connect(function()
-        fovAimEnabled = not fovAimEnabled
-        toggleButton.BackgroundColor3 = fovAimEnabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
-        toggleButton.BackgroundTransparency = fovAimEnabled and 0.1 or 0.4
-        -- ПОКАЗЫВАЕМ/СКРЫВАЕМ СЛАЙДЕР
-        fovSlider.Visible = fovAimEnabled
-        fovLabel.Visible = fovAimEnabled
-        fovValueLabel.Visible = fovAimEnabled
-    end)
-
-    return toggleButton
-end
-
--- СОЗДАЁМ СЛАЙДЕР ДЛЯ FOV
-local fovLabel = Instance.new("TextLabel")
-fovLabel.Size = UDim2.new(0.7, 0, 0, 20)
-fovLabel.Position = UDim2.new(0, 0, 0, 110)
-fovLabel.BackgroundTransparency = 1
-fovLabel.Text = "FOV (0-80):"
-fovLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
-fovLabel.TextSize = 12
-fovLabel.Font = Enum.Font.Gotham
-fovLabel.TextXAlignment = Enum.TextXAlignment.Left
-fovLabel.Visible = false
-fovLabel.Parent = combatTab
-
-local fovValueLabel = Instance.new("TextLabel")
-fovValueLabel.Size = UDim2.new(0, 30, 0, 20)
-fovValueLabel.Position = UDim2.new(0.7, 0, 0, 110)
-fovValueLabel.BackgroundTransparency = 1
-fovValueLabel.Text = "40"
-fovValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-fovValueLabel.TextSize = 12
-fovValueLabel.Font = Enum.Font.Gotham
-fovValueLabel.TextXAlignment = Enum.TextXAlignment.Right
-fovValueLabel.Visible = false
-fovValueLabel.Parent = combatTab
-
-local fovSlider = Instance.new("Frame")
-fovSlider.Size = UDim2.new(0.5, 0, 0, 16)
-fovSlider.Position = UDim2.new(0.15, 0, 0, 135)
-fovSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-fovSlider.BackgroundTransparency = 0.4
-fovSlider.Visible = false
-fovSlider.Parent = combatTab
-
-local fovSliderCorner = Instance.new("UICorner")
-fovSliderCorner.CornerRadius = UDim.new(0, 8)
-fovSliderCorner.Parent = fovSlider
-
-local fovIndicator = Instance.new("Frame")
-fovIndicator.Size = UDim2.new(0, 16, 0, 16)
-fovIndicator.Position = UDim2.new(0.5, -8, 0, 0)
-fovIndicator.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-fovIndicator.BackgroundTransparency = 0.1
-fovIndicator.Parent = fovSlider
-
-local fovIndicatorCorner = Instance.new("UICorner")
-fovIndicatorCorner.CornerRadius = UDim.new(0, 8)
-fovIndicatorCorner.Parent = fovIndicator
-
--- ЛОГИКА СЛАЙДЕРА
-local draggingFov = false
-fovSlider.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingFov = true
-    end
-end)
-
-fovSlider.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        draggingFov = false
-    end
-end)
-
-game:GetService("RunService").RenderStepped:Connect(function()
-    if draggingFov and fovSlider.Visible then
-        local mousePos = player:GetMouse().X
-        local sliderPos = fovSlider.AbsolutePosition.X
-        local sliderSize = fovSlider.AbsoluteSize.X
-        local relativePos = math.clamp((mousePos - sliderPos) / sliderSize, 0, 1)
-        fovIndicator.Position = UDim2.new(relativePos, -8, 0, 0)
-        fovValue = math.round(relativePos * 80)
-        fovValueLabel.Text = tostring(fovValue)
-    end
-end)
-
--- СОЗДАЁМ ТОГГЛ
-createFovAimToggle()
-
--- ===== ЛОГИКА FOV AIM =====
-local function getFovTarget()
-    local closest = nil
-    local closestAngle = math.huge
-    local character = player.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
-    
-    local camera = workspace.CurrentCamera
-    if not camera then return nil end
-    local lookDirection = camera.CFrame.LookVector
-    
-    for _, plr in pairs(game.Players:GetPlayers()) do
-        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local role = getPlayerRole(plr)
-            -- ЦЕЛИ: только невинные и шерифы (не мардеры!)
-            if role == "Innocent" or role == "Sheriff" then
-                local targetPos = plr.Character.HumanoidRootPart.Position
-                local direction = (targetPos - camera.CFrame.Position).Unit
-                local angle = math.deg(math.acos(lookDirection:Dot(direction)))
-                
-                -- Проверка угла
-                if angle <= fovValue then
-                    -- Проверка на стену (Raycast)
-                    local raycastParams = RaycastParams.new()
-                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
-                    raycastParams.FilterDescendantsInstances = {character}
-                    local rayResult = workspace:Raycast(camera.CFrame.Position, direction * 500, raycastParams)
-                    if not rayResult or rayResult.Instance:IsDescendantOf(plr.Character) then
-                        if angle < closestAngle then
-                            closestAngle = angle
-                            closest = plr
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
-    return closest
-end
-
--- ДОБАВЛЯЕМ FOV AIM В ОСНОВНОЙ ЦИКЛ
-local origRenderStepped = runService.RenderStepped.Connect
-runService.RenderStepped:Connect(function()
-    -- Оставляем старый Silent Aim (для мардера)
-    if silentAimEnabled and isAimActive() then
-        local target = getNearestMurderer()
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            local camera = workspace.CurrentCamera
-            if camera then
-                local targetPos = target.Character.HumanoidRootPart.Position
-                local lookAt = CFrame.lookAt(camera.CFrame.Position, targetPos)
-                camera.CFrame = camera.CFrame:Lerp(lookAt, 0.3)
-            end
-        end
-    end
-    
-    -- НОВЫЙ FOV AIM ДЛЯ МАРДЕРА
-    if fovAimEnabled then
-        local target = getFovTarget()
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-            local camera = workspace.CurrentCamera
-            if camera then
-                local targetPos = target.Character.HumanoidRootPart.Position
-                local lookAt = CFrame.lookAt(camera.CFrame.Position, targetPos)
-                camera.CFrame = camera.CFrame:Lerp(lookAt, 0.3)
-            end
-        end
-    end
-end)
-
-print("[FOV AIM] ДЛЯ МАРДЕРА ЗАГРУЖЕН, СУКА!")
