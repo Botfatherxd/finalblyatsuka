@@ -622,3 +622,199 @@ userInput.InputBegan:Connect(function(input)
 end)
 
 print("[KEBABICH] СКРИПТ ЗАГРУЖЕН, ВСЁ РАБОТАЕТ, СУКА!")
+
+
+-- ============================================================
+-- FOV AIM ДЛЯ МАРДЕРА (НЕ ПЕРЕПИСЫВАЙ, ПРОСТО ВСТАВЬ В КОНЕЦ!)
+-- ============================================================
+
+local fovAimEnabled = false
+local fovValue = 40  -- значение по умолчанию
+
+-- СОЗДАЁМ ЭЛЕМЕНТЫ МЕНЮ ДЛЯ FOV AIM (в раздел COMBAT)
+local function createFovAimToggle()
+    local labelText = Instance.new("TextLabel")
+    labelText.Size = UDim2.new(0.7, 0, 0, 20)
+    labelText.Position = UDim2.new(0, 0, 0, 80)  -- чуть ниже Anti-Aim
+    labelText.BackgroundTransparency = 1
+    labelText.Text = "FOV Aim для мардера"
+    labelText.TextColor3 = Color3.fromRGB(220, 220, 220)
+    labelText.TextSize = 12
+    labelText.Font = Enum.Font.Gotham
+    labelText.TextXAlignment = Enum.TextXAlignment.Left
+    labelText.Parent = combatTab
+
+    local toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 22, 0, 22)
+    toggleButton.Position = UDim2.new(0.85, 0, 0, 79)
+    toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
+    toggleButton.BackgroundTransparency = 0.4
+    toggleButton.Text = ""
+    toggleButton.Parent = combatTab
+
+    local toggleCorner = Instance.new("UICorner")
+    toggleCorner.CornerRadius = UDim.new(0, 4)
+    toggleCorner.Parent = toggleButton
+
+    toggleButton.MouseButton1Click:Connect(function()
+        fovAimEnabled = not fovAimEnabled
+        toggleButton.BackgroundColor3 = fovAimEnabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
+        toggleButton.BackgroundTransparency = fovAimEnabled and 0.1 or 0.4
+        -- ПОКАЗЫВАЕМ/СКРЫВАЕМ СЛАЙДЕР
+        fovSlider.Visible = fovAimEnabled
+        fovLabel.Visible = fovAimEnabled
+        fovValueLabel.Visible = fovAimEnabled
+    end)
+
+    return toggleButton
+end
+
+-- СОЗДАЁМ СЛАЙДЕР ДЛЯ FOV
+local fovLabel = Instance.new("TextLabel")
+fovLabel.Size = UDim2.new(0.7, 0, 0, 20)
+fovLabel.Position = UDim2.new(0, 0, 0, 110)
+fovLabel.BackgroundTransparency = 1
+fovLabel.Text = "FOV (0-80):"
+fovLabel.TextColor3 = Color3.fromRGB(220, 220, 220)
+fovLabel.TextSize = 12
+fovLabel.Font = Enum.Font.Gotham
+fovLabel.TextXAlignment = Enum.TextXAlignment.Left
+fovLabel.Visible = false
+fovLabel.Parent = combatTab
+
+local fovValueLabel = Instance.new("TextLabel")
+fovValueLabel.Size = UDim2.new(0, 30, 0, 20)
+fovValueLabel.Position = UDim2.new(0.7, 0, 0, 110)
+fovValueLabel.BackgroundTransparency = 1
+fovValueLabel.Text = "40"
+fovValueLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+fovValueLabel.TextSize = 12
+fovValueLabel.Font = Enum.Font.Gotham
+fovValueLabel.TextXAlignment = Enum.TextXAlignment.Right
+fovValueLabel.Visible = false
+fovValueLabel.Parent = combatTab
+
+local fovSlider = Instance.new("Frame")
+fovSlider.Size = UDim2.new(0.5, 0, 0, 16)
+fovSlider.Position = UDim2.new(0.15, 0, 0, 135)
+fovSlider.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+fovSlider.BackgroundTransparency = 0.4
+fovSlider.Visible = false
+fovSlider.Parent = combatTab
+
+local fovSliderCorner = Instance.new("UICorner")
+fovSliderCorner.CornerRadius = UDim.new(0, 8)
+fovSliderCorner.Parent = fovSlider
+
+local fovIndicator = Instance.new("Frame")
+fovIndicator.Size = UDim2.new(0, 16, 0, 16)
+fovIndicator.Position = UDim2.new(0.5, -8, 0, 0)
+fovIndicator.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+fovIndicator.BackgroundTransparency = 0.1
+fovIndicator.Parent = fovSlider
+
+local fovIndicatorCorner = Instance.new("UICorner")
+fovIndicatorCorner.CornerRadius = UDim.new(0, 8)
+fovIndicatorCorner.Parent = fovIndicator
+
+-- ЛОГИКА СЛАЙДЕРА
+local draggingFov = false
+fovSlider.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFov = true
+    end
+end)
+
+fovSlider.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingFov = false
+    end
+end)
+
+game:GetService("RunService").RenderStepped:Connect(function()
+    if draggingFov and fovSlider.Visible then
+        local mousePos = player:GetMouse().X
+        local sliderPos = fovSlider.AbsolutePosition.X
+        local sliderSize = fovSlider.AbsoluteSize.X
+        local relativePos = math.clamp((mousePos - sliderPos) / sliderSize, 0, 1)
+        fovIndicator.Position = UDim2.new(relativePos, -8, 0, 0)
+        fovValue = math.round(relativePos * 80)
+        fovValueLabel.Text = tostring(fovValue)
+    end
+end)
+
+-- СОЗДАЁМ ТОГГЛ
+createFovAimToggle()
+
+-- ===== ЛОГИКА FOV AIM =====
+local function getFovTarget()
+    local closest = nil
+    local closestAngle = math.huge
+    local character = player.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return nil end
+    
+    local camera = workspace.CurrentCamera
+    if not camera then return nil end
+    local lookDirection = camera.CFrame.LookVector
+    
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr ~= player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local role = getPlayerRole(plr)
+            -- ЦЕЛИ: только невинные и шерифы (не мардеры!)
+            if role == "Innocent" or role == "Sheriff" then
+                local targetPos = plr.Character.HumanoidRootPart.Position
+                local direction = (targetPos - camera.CFrame.Position).Unit
+                local angle = math.deg(math.acos(lookDirection:Dot(direction)))
+                
+                -- Проверка угла
+                if angle <= fovValue then
+                    -- Проверка на стену (Raycast)
+                    local raycastParams = RaycastParams.new()
+                    raycastParams.FilterType = Enum.RaycastFilterType.Blacklist
+                    raycastParams.FilterDescendantsInstances = {character}
+                    local rayResult = workspace:Raycast(camera.CFrame.Position, direction * 500, raycastParams)
+                    if not rayResult or rayResult.Instance:IsDescendantOf(plr.Character) then
+                        if angle < closestAngle then
+                            closestAngle = angle
+                            closest = plr
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
+    return closest
+end
+
+-- ДОБАВЛЯЕМ FOV AIM В ОСНОВНОЙ ЦИКЛ
+local origRenderStepped = runService.RenderStepped.Connect
+runService.RenderStepped:Connect(function()
+    -- Оставляем старый Silent Aim (для мардера)
+    if silentAimEnabled and isAimActive() then
+        local target = getNearestMurderer()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local camera = workspace.CurrentCamera
+            if camera then
+                local targetPos = target.Character.HumanoidRootPart.Position
+                local lookAt = CFrame.lookAt(camera.CFrame.Position, targetPos)
+                camera.CFrame = camera.CFrame:Lerp(lookAt, 0.3)
+            end
+        end
+    end
+    
+    -- НОВЫЙ FOV AIM ДЛЯ МАРДЕРА
+    if fovAimEnabled then
+        local target = getFovTarget()
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+            local camera = workspace.CurrentCamera
+            if camera then
+                local targetPos = target.Character.HumanoidRootPart.Position
+                local lookAt = CFrame.lookAt(camera.CFrame.Position, targetPos)
+                camera.CFrame = camera.CFrame:Lerp(lookAt, 0.3)
+            end
+        end
+    end
+end)
+
+print("[FOV AIM] ДЛЯ МАРДЕРА ЗАГРУЖЕН, СУКА!")
