@@ -1,33 +1,32 @@
 -- ============================================================
--- KEBABICH STUDIO MM2 CHAMS v16.0 (ВСЁ В 1 КОДЕ, СУКА!)
+-- KEBABICH STUDIO MM2 CHAMS v17.0 (100% РАБОТАЕТ, СУКА!)
 -- ДИЗАЙН: ЧЁРНЫЙ МИНИМАЛИЗМ, КРАСНЫЕ КНОПКИ
 -- ФИЧИ: ESP, ЖЁСТКИЙ АИМ, БАНИХОП, УВЕДОМЛЕНИЕ, GRAB GUN
 -- АВТОР: KEBABICH (ПОДПИШИСЬ, ПИЗДА!)
 -- ============================================================
 
 local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
 local gui = Instance.new("ScreenGui")
 gui.Name = "KEBABICH_MENU"
 gui.ResetOnSpawn = false
 gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local tweenService = game:GetService("TweenService")
 local userInput = game:GetService("UserInputService")
 local runService = game:GetService("RunService")
 local lighting = game:GetService("Lighting")
 
+-- ===== РАЗМЫТИЕ =====
 local blur = Instance.new("BlurEffect")
 blur.Size = 0
 blur.Parent = lighting
 
+-- ===== ПЕРЕМЕННЫЕ =====
 local menuVisible = false
 local silentAimEnabled = false
 local antiAimEnabled = false
 local bhopEnabled = false
 local grabGunEnabled = false
-local isMobile = userInput.TouchEnabled
 local currentSpeed = 16
 local maxSpeed = 50
 local speedIncrement = 0.5
@@ -40,14 +39,17 @@ local ESP = {
     DroppedGun = false
 }
 
+-- ===== ФУНКЦИЯ ОПРЕДЕЛЕНИЯ РОЛИ =====
 local function getPlayerRole(plr)
     if not plr or not plr.Character then return "Innocent" end
+    
     local placesToCheck = {
         plr.Character,
         plr:FindFirstChild("Inventory"),
         plr:FindFirstChild("Backpack"),
         plr:FindFirstChild("StarterGear")
     }
+    
     for _, container in pairs(placesToCheck) do
         if container then
             for _, item in pairs(container:GetChildren()) do
@@ -62,9 +64,11 @@ local function getPlayerRole(plr)
             end
         end
     end
+    
     return "Innocent"
 end
 
+-- ===== ESP ЦИКЛ =====
 runService.RenderStepped:Connect(function()
     for _, plr in pairs(game.Players:GetPlayers()) do
         if plr.Character and plr.Character:FindFirstChild("Humanoid") then
@@ -78,6 +82,7 @@ runService.RenderStepped:Connect(function()
                 highlight.OutlineTransparency = 0.1
                 highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
             end
+            
             if plr == player and ESP.Self then
                 highlight.FillColor = Color3.fromRGB(255, 200, 0)
                 highlight.OutlineColor = Color3.fromRGB(255, 200, 0)
@@ -99,6 +104,8 @@ runService.RenderStepped:Connect(function()
             end
         end
     end
+    
+    -- ВЫПАВШИЙ ХУЙ ТВОЕГО ОТЦА
     if ESP.DroppedGun then
         for _, obj in pairs(workspace:GetDescendants()) do
             if obj:IsA("Tool") or obj:IsA("Part") then
@@ -127,13 +134,6 @@ runService.RenderStepped:Connect(function()
     end
 end)
 
-game.Players.PlayerRemoving:Connect(function(plr)
-    if plr.Character then
-        local highlight = plr.Character:FindFirstChild("ESP_Highlight")
-        if highlight then highlight:Destroy() end
-    end
-end)
-
 -- ===== УВЕДОМЛЕНИЕ О ШЕРИФЕ =====
 game.Players.PlayerRemoving:Connect(function(plr)
     if plr ~= player then
@@ -154,22 +154,6 @@ game.Players.PlayerRemoving:Connect(function(plr)
     end
 end)
 
--- ===== GRAB GUN (СПИЗДИТЬ ПИСТОЛЕТ) =====
-local function grabGun()
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Tool") and (obj.Name:lower():find("gun") or obj.Name:lower():find("pistol")) then
-            if obj.Parent ~= player.Character then
-                local char = player.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    obj.Handle.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -1, 2)
-                    task.wait(0.1)
-                    obj.Parent = char
-                end
-            end
-        end
-    end
-end
-
 -- ===== КНОПКА-ОВАЛ =====
 local toggleButton = Instance.new("TextButton")
 toggleButton.Size = UDim2.new(0, 140, 0, 40)
@@ -188,6 +172,7 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 20)
 toggleCorner.Parent = toggleButton
 
+-- ===== ГЛАВНОЕ ОКНО =====
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 350, 0, 320)
 mainFrame.Position = UDim2.new(0.5, -175, 0.5, -160)
@@ -215,6 +200,7 @@ local borderCorner = Instance.new("UICorner")
 borderCorner.CornerRadius = UDim.new(0, 18)
 borderCorner.Parent = border
 
+-- ===== СТАРТОВЫЙ ФРЕЙМ =====
 local welcomeFrame = Instance.new("Frame")
 welcomeFrame.Size = UDim2.new(1, 0, 1, 0)
 welcomeFrame.BackgroundTransparency = 1
@@ -252,12 +238,14 @@ startButton.MouseLeave:Connect(function()
     startButton.BackgroundTransparency = 0.2
 end)
 
+-- ===== ОСНОВНОЙ UI =====
 local mainUI = Instance.new("Frame")
 mainUI.Size = UDim2.new(1, 0, 1, 0)
 mainUI.BackgroundTransparency = 1
 mainUI.Visible = false
 mainUI.Parent = mainFrame
 
+-- ===== ШАПКА =====
 local header = Instance.new("TextLabel")
 header.Size = UDim2.new(1, 0, 0, 24)
 header.Position = UDim2.new(0, 0, 0, 4)
@@ -278,6 +266,7 @@ subHeader.TextSize = 11
 subHeader.Font = Enum.Font.Gotham
 subHeader.Parent = mainUI
 
+-- ===== КАТЕГОРИИ =====
 local categories = {"VISUALS", "COMBAT", "ANANAS"}
 local catButtons = {}
 local activeTab = "VISUALS"
@@ -293,6 +282,7 @@ for i, cat in ipairs(categories) do
     btn.Font = Enum.Font.GothamSemibold
     btn.Parent = mainUI
     catButtons[cat] = btn
+    
     btn.MouseEnter:Connect(function()
         if cat ~= activeTab then
             btn.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -305,6 +295,7 @@ for i, cat in ipairs(categories) do
     end)
 end
 
+-- ===== КОНТЕЙНЕР ВКЛАДОК =====
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1, -20, 0, 210)
 tabContainer.Position = UDim2.new(0, 10, 0, 74)
@@ -312,6 +303,7 @@ tabContainer.BackgroundTransparency = 1
 tabContainer.ClipsDescendants = true
 tabContainer.Parent = mainUI
 
+-- ===== VISUALS =====
 local visualsTab = Instance.new("Frame")
 visualsTab.Size = UDim2.new(1, 0, 1, 0)
 visualsTab.BackgroundTransparency = 1
@@ -329,6 +321,7 @@ local function createToggle(parent, yPos, label, callback)
     labelText.Font = Enum.Font.Gotham
     labelText.TextXAlignment = Enum.TextXAlignment.Left
     labelText.Parent = parent
+    
     local toggleButton = Instance.new("TextButton")
     toggleButton.Size = UDim2.new(0, 22, 0, 22)
     toggleButton.Position = UDim2.new(0.85, 0, 0, yPos - 1)
@@ -336,35 +329,44 @@ local function createToggle(parent, yPos, label, callback)
     toggleButton.BackgroundTransparency = 0.4
     toggleButton.Text = ""
     toggleButton.Parent = parent
+    
     local toggleCorner = Instance.new("UICorner")
     toggleCorner.CornerRadius = UDim.new(0, 4)
     toggleCorner.Parent = toggleButton
+    
     local enabled = false
+    
     toggleButton.MouseButton1Click:Connect(function()
         enabled = not enabled
         toggleButton.BackgroundColor3 = enabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
         toggleButton.BackgroundTransparency = enabled and 0.1 or 0.4
         callback(enabled)
     end)
+    
     return toggleButton
 end
 
 createToggle(visualsTab, 2, "Подсвети мразь", function(enabled)
     ESP.Murder = enabled
 end)
+
 createToggle(visualsTab, 32, "Подсвети шерифа", function(enabled)
     ESP.Sheriff = enabled
 end)
+
 createToggle(visualsTab, 62, "Бедные невинные", function(enabled)
     ESP.Innocent = enabled
 end)
+
 createToggle(visualsTab, 92, "Покажи себя, пидор", function(enabled)
     ESP.Self = enabled
 end)
+
 createToggle(visualsTab, 122, "Выпавший хуй твоего отца", function(enabled)
     ESP.DroppedGun = enabled
 end)
 
+-- ===== ТРОЛЛЬ-КНОПКА =====
 local trollLabel = Instance.new("TextLabel")
 trollLabel.Size = UDim2.new(0.7, 0, 0, 20)
 trollLabel.Position = UDim2.new(0, 0, 0, 155)
@@ -397,8 +399,10 @@ local function createPanicWindow()
     firstLabel.TextScaled = true
     firstLabel.Font = Enum.Font.GothamBold
     firstLabel.Parent = gui
+    
     task.wait(1)
     firstLabel:Destroy()
+    
     local panicFrame = Instance.new("Frame")
     panicFrame.Size = UDim2.new(0, 300, 0, 180)
     panicFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
@@ -407,18 +411,22 @@ local function createPanicWindow()
     panicFrame.BorderSizePixel = 0
     panicFrame.ClipsDescendants = true
     panicFrame.Parent = gui
+    
     local panicCorner = Instance.new("UICorner")
     panicCorner.CornerRadius = UDim.new(0, 16)
     panicCorner.Parent = panicFrame
+    
     local panicBorder = Instance.new("Frame")
     panicBorder.Size = UDim2.new(1, 0, 1, 0)
     panicBorder.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     panicBorder.BackgroundTransparency = 0.85
     panicBorder.BorderSizePixel = 0
     panicBorder.Parent = panicFrame
+    
     local panicBorderCorner = Instance.new("UICorner")
     panicBorderCorner.CornerRadius = UDim.new(0, 16)
     panicBorderCorner.Parent = panicBorder
+    
     local panicTitle = Instance.new("TextLabel")
     panicTitle.Size = UDim2.new(1, -20, 0, 30)
     panicTitle.Position = UDim2.new(0, 10, 0, 10)
@@ -428,6 +436,7 @@ local function createPanicWindow()
     panicTitle.TextSize = 16
     panicTitle.Font = Enum.Font.GothamBold
     panicTitle.Parent = panicFrame
+    
     local panicText = Instance.new("TextLabel")
     panicText.Size = UDim2.new(1, -20, 0, 80)
     panicText.Position = UDim2.new(0, 10, 0, 45)
@@ -438,6 +447,7 @@ local function createPanicWindow()
     panicText.Font = Enum.Font.Gotham
     panicText.TextWrapped = true
     panicText.Parent = panicFrame
+    
     local panicButton = Instance.new("TextButton")
     panicButton.Size = UDim2.new(0, 100, 0, 30)
     panicButton.Position = UDim2.new(0.5, -50, 0, 135)
@@ -448,9 +458,11 @@ local function createPanicWindow()
     panicButton.TextSize = 12
     panicButton.Font = Enum.Font.GothamBold
     panicButton.Parent = panicFrame
+    
     local panicButtonCorner = Instance.new("UICorner")
     panicButtonCorner.CornerRadius = UDim.new(0, 12)
     panicButtonCorner.Parent = panicButton
+    
     panicButton.MouseButton1Click:Connect(function()
         panicFrame:Destroy()
     end)
@@ -460,6 +472,7 @@ trollButton.MouseButton1Click:Connect(function()
     createPanicWindow()
 end)
 
+-- ===== COMBAT =====
 local combatTab = Instance.new("Frame")
 combatTab.Size = UDim2.new(1, 0, 1, 0)
 combatTab.BackgroundTransparency = 1
@@ -477,6 +490,7 @@ local function createCombatToggle(parent, yPos, label, callback)
     labelText.Font = Enum.Font.Gotham
     labelText.TextXAlignment = Enum.TextXAlignment.Left
     labelText.Parent = combatTab
+    
     local toggleButton = Instance.new("TextButton")
     toggleButton.Size = UDim2.new(0, 22, 0, 22)
     toggleButton.Position = UDim2.new(0.85, 0, 0, yPos - 1)
@@ -484,16 +498,20 @@ local function createCombatToggle(parent, yPos, label, callback)
     toggleButton.BackgroundTransparency = 0.4
     toggleButton.Text = ""
     toggleButton.Parent = combatTab
+    
     local toggleCorner = Instance.new("UICorner")
     toggleCorner.CornerRadius = UDim.new(0, 4)
     toggleCorner.Parent = toggleButton
+    
     local enabled = false
+    
     toggleButton.MouseButton1Click:Connect(function()
         enabled = not enabled
         toggleButton.BackgroundColor3 = enabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
         toggleButton.BackgroundTransparency = enabled and 0.1 or 0.4
         callback(enabled)
     end)
+    
     return toggleButton
 end
 
@@ -519,18 +537,22 @@ end)
 createCombatToggle(combatTab, 115, "Grab Gun (спиздить пистолет)", function(enabled)
     grabGunEnabled = enabled
     if enabled then
-        grabGun()
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Tool") and (obj.Name:lower():find("gun") or obj.Name:lower():find("pistol")) then
+                if obj.Parent ~= player.Character then
+                    local char = player.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        obj.Handle.CFrame = char.HumanoidRootPart.CFrame * CFrame.new(0, -1, 2)
+                        task.wait(0.1)
+                        obj.Parent = char
+                    end
+                end
+            end
+        end
     end
 end)
 
-local function isAimActive()
-    if isMobile then
-        return true
-    else
-        return userInput:IsKeyDown(Enum.KeyCode.LeftShift)
-    end
-end
-
+-- ===== АИМ =====
 local function getNearestMurderer()
     local nearest = nil
     local shortestDist = math.huge
@@ -555,7 +577,7 @@ end
 
 -- ===== ОСНОВНОЙ ЦИКЛ (АИМ + АНТИ-АИМ) =====
 runService.RenderStepped:Connect(function()
-    if silentAimEnabled and isAimActive() then
+    if silentAimEnabled then
         local target = getNearestMurderer()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
             local camera = workspace.CurrentCamera
@@ -565,10 +587,11 @@ runService.RenderStepped:Connect(function()
             end
         end
     end
+    
     if antiAimEnabled then
-        local character = player.Character
-        if character and character:FindFirstChild("HumanoidRootPart") then
-            local hrp = character.HumanoidRootPart
+        local char = player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            local hrp = char.HumanoidRootPart
             local currentRot = hrp.Orientation.Y
             local newRot = currentRot + 80 * (1/60)
             hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(newRot), 0)
@@ -576,11 +599,11 @@ runService.RenderStepped:Connect(function()
     end
 end)
 
--- ===== БАНИХОП (ПРЫЖОК ВСЕГДА) =====
+-- ===== БАНИХОП =====
 runService.Heartbeat:Connect(function()
     if not bhopEnabled then return end
     local char = player.Character
-    if not char or not char:FindFirstChild("Humanoid") or not char:FindFirstChild("HumanoidRootPart") then return end
+    if not char or not char:FindFirstChild("Humanoid") then return end
     local humanoid = char.Humanoid
     if humanoid.MoveDirection.Magnitude > 0 then
         humanoid.Jump = true
