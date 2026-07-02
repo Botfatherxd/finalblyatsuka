@@ -1,27 +1,118 @@
 -- ============================================================
--- KEBABICH STUDIO MM2 CHAMS v13.0 (ПОЛНЫЙ ХАОС, СУКА!)
+-- KEBABICH STUDIO MM2 CHAMS v14.0 (ПЕРЕПИСАНО С НУЛЯ, СУКА!)
 -- ДИЗАЙН: ЧЁРНЫЙ МИНИМАЛИЗМ, КРАСНЫЕ КНОПКИ, ОВАЛЬНАЯ КНОПКА
--- ФИЧИ: ESP (MURDER/SHERIFF/INNOCENT/SELF/DROPPED GUN) 
---        + SILENT AIM (ПК/ТЕЛЕФОН) 
---        + ANTI-AIM (ВРАЩЕНИЕ 80 РАД/СЕК)
---        + ТРОЛЛЬ-КНОПКА "ВЫЕБАТЬ МАТЬ РАЗРАБОТЧИКА"
+-- ФИЧИ: ESP + SILENT AIM + ANTI-AIM + ТРОЛЛЬ-КНОПКА
 -- АВТОР: KEBABICH (ПОДПИШИСЬ, ПИЗДА!)
 -- ============================================================
 
+-- ===== ОСНОВНЫЕ ПЕРЕМЕННЫЕ =====
 local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 local gui = Instance.new("ScreenGui")
 gui.Name = "KEBABICH_MENU"
-gui.IgnoreGuiInset = true
 gui.ResetOnSpawn = false
+gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- ========== РАЗМЫТИЕ ФОНА ==========
+local tweenService = game:GetService("TweenService")
+local userInput = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+
+-- ===== РАЗМЫТИЕ =====
 local blur = Instance.new("BlurEffect")
 blur.Size = 0
 blur.Parent = game:GetService("Lighting")
 
--- ========== КНОПКА-ОВАЛ ==========
+-- ===== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ =====
+local menuVisible = false
+local silentAimEnabled = false
+local antiAimEnabled = false
+local isMobile = userInput.TouchEnabled
+
+-- ===== ESP =====
+local ESP = {
+    Murder = false,
+    Sheriff = false,
+    Innocent = false,
+    Self = false,
+    DroppedGun = false
+}
+
+-- ===== ФУНКЦИЯ ОПРЕДЕЛЕНИЯ РОЛИ =====
+local function getPlayerRole(plr)
+    if not plr or not plr.Character then return "Innocent" end
+    
+    local placesToCheck = {
+        plr.Character,
+        plr:FindFirstChild("Inventory"),
+        plr:FindFirstChild("Backpack"),
+        plr:FindFirstChild("StarterGear")
+    }
+    
+    for _, container in pairs(placesToCheck) do
+        if container then
+            for _, item in pairs(container:GetChildren()) do
+                if item:IsA("Tool") then
+                    local name = item.Name:lower()
+                    if name:find("knife") or name:find("murder") or name:find("кнайф") or name:find("крим") or name:find("нож") or name:find("киллер") or name:find("blade") or name:find("dagger") then
+                        return "Murder"
+                    elseif name:find("gun") or name:find("pistol") or name:find("sheriff") or name:find("пистолет") or name:find("револьвер") or name:find("revolver") or name:find("шоты") or name:find("ствол") then
+                        return "Sheriff"
+                    end
+                end
+            end
+        end
+    end
+    
+    return "Innocent"
+end
+
+-- ===== ОСНОВНОЙ ЦИКЛ ESP =====
+runService.RenderStepped:Connect(function()
+    for _, plr in pairs(game.Players:GetPlayers()) do
+        if plr.Character and plr.Character:FindFirstChild("Humanoid") then
+            local role = getPlayerRole(plr)
+            local highlight = plr.Character:FindFirstChild("ESP_Highlight")
+            if not highlight then
+                highlight = Instance.new("Highlight")
+                highlight.Name = "ESP_Highlight"
+                highlight.Parent = plr.Character
+                highlight.FillTransparency = 0.3
+                highlight.OutlineTransparency = 0.1
+                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            end
+            
+            if plr == player and ESP.Self then
+                highlight.FillColor = Color3.fromRGB(255, 200, 0)
+                highlight.OutlineColor = Color3.fromRGB(255, 200, 0)
+                highlight.Enabled = true
+            elseif role == "Murder" and ESP.Murder then
+                highlight.FillColor = Color3.fromRGB(255, 0, 0)
+                highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
+                highlight.Enabled = true
+            elseif role == "Sheriff" and ESP.Sheriff then
+                highlight.FillColor = Color3.fromRGB(0, 100, 255)
+                highlight.OutlineColor = Color3.fromRGB(0, 100, 255)
+                highlight.Enabled = true
+            elseif role == "Innocent" and ESP.Innocent then
+                highlight.FillColor = Color3.fromRGB(0, 255, 50)
+                highlight.OutlineColor = Color3.fromRGB(0, 255, 50)
+                highlight.Enabled = true
+            else
+                highlight.Enabled = false
+            end
+        end
+    end
+end)
+
+game.Players.PlayerRemoving:Connect(function(plr)
+    if plr.Character then
+        local highlight = plr.Character:FindFirstChild("ESP_Highlight")
+        if highlight then highlight:Destroy() end
+    end
+end)
+
+-- ===== КНОПКА-ОВАЛ =====
 local toggleButton = Instance.new("TextButton")
 toggleButton.Size = UDim2.new(0, 140, 0, 40)
 toggleButton.Position = UDim2.new(0.5, -70, 0, 20)
@@ -39,22 +130,10 @@ local toggleCorner = Instance.new("UICorner")
 toggleCorner.CornerRadius = UDim.new(0, 20)
 toggleCorner.Parent = toggleButton
 
-local toggleShadow = Instance.new("ImageLabel")
-toggleShadow.Size = UDim2.new(1, 10, 1, 10)
-toggleShadow.Position = UDim2.new(0, -5, 0, -5)
-toggleShadow.BackgroundTransparency = 1
-toggleShadow.Image = "rbxassetid://1316045711"
-toggleShadow.ImageColor3 = Color3.fromRGB(0, 0, 0)
-toggleShadow.ImageTransparency = 0.6
-toggleShadow.ZIndex = 0
-toggleShadow.Parent = toggleButton
-
-local menuVisible = false
-
--- ========== ГЛАВНОЕ ОКНО ==========
+-- ===== ГЛАВНОЕ ОКНО =====
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 0, 0, 0)
-mainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+mainFrame.Size = UDim2.new(0, 350, 0, 320)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -160)
 mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 mainFrame.BackgroundTransparency = 0.25
 mainFrame.BorderSizePixel = 0
@@ -79,11 +158,7 @@ local borderCorner = Instance.new("UICorner")
 borderCorner.CornerRadius = UDim.new(0, 18)
 borderCorner.Parent = border
 
--- ========== АНИМАЦИЯ ==========
-local tweenService = game:GetService("TweenService")
-local openTweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
--- ========== СТАРТОВЫЙ ФРЕЙМ ==========
+-- ===== СТАРТОВЫЙ ФРЕЙМ =====
 local welcomeFrame = Instance.new("Frame")
 welcomeFrame.Size = UDim2.new(1, 0, 1, 0)
 welcomeFrame.BackgroundTransparency = 1
@@ -115,20 +190,20 @@ startCorner.CornerRadius = UDim.new(0, 14)
 startCorner.Parent = startButton
 
 startButton.MouseEnter:Connect(function()
-    tweenService:Create(startButton, TweenInfo.new(0.15), {BackgroundTransparency = 0.5}):Play()
+    startButton.BackgroundTransparency = 0.5
 end)
 startButton.MouseLeave:Connect(function()
-    tweenService:Create(startButton, TweenInfo.new(0.15), {BackgroundTransparency = 0.2}):Play()
+    startButton.BackgroundTransparency = 0.2
 end)
 
--- ========== ОСНОВНОЙ UI ==========
+-- ===== ОСНОВНОЙ UI =====
 local mainUI = Instance.new("Frame")
 mainUI.Size = UDim2.new(1, 0, 1, 0)
 mainUI.BackgroundTransparency = 1
 mainUI.Visible = false
 mainUI.Parent = mainFrame
 
--- ========== ШАПКА ==========
+-- ===== ШАПКА =====
 local header = Instance.new("TextLabel")
 header.Size = UDim2.new(1, 0, 0, 24)
 header.Position = UDim2.new(0, 0, 0, 4)
@@ -149,7 +224,7 @@ subHeader.TextSize = 11
 subHeader.Font = Enum.Font.Gotham
 subHeader.Parent = mainUI
 
--- ========== КАТЕГОРИИ ==========
+-- ===== КАТЕГОРИИ =====
 local categories = {"VISUALS", "COMBAT", "ANANAS"}
 local catButtons = {}
 local activeTab = "VISUALS"
@@ -168,17 +243,17 @@ for i, cat in ipairs(categories) do
     
     btn.MouseEnter:Connect(function()
         if cat ~= activeTab then
-            tweenService:Create(btn, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(200, 200, 200)}):Play()
+            btn.TextColor3 = Color3.fromRGB(200, 200, 200)
         end
     end)
     btn.MouseLeave:Connect(function()
         if cat ~= activeTab then
-            tweenService:Create(btn, TweenInfo.new(0.15), {TextColor3 = Color3.fromRGB(130, 130, 130)}):Play()
+            btn.TextColor3 = Color3.fromRGB(130, 130, 130)
         end
     end)
 end
 
--- ========== КОНТЕЙНЕР ВКЛАДОК ==========
+-- ===== КОНТЕЙНЕР ВКЛАДОК =====
 local tabContainer = Instance.new("Frame")
 tabContainer.Size = UDim2.new(1, -20, 0, 210)
 tabContainer.Position = UDim2.new(0, 10, 0, 74)
@@ -186,7 +261,7 @@ tabContainer.BackgroundTransparency = 1
 tabContainer.ClipsDescendants = true
 tabContainer.Parent = mainUI
 
--- ========== VISUALS ==========
+-- ===== VISUALS =====
 local visualsTab = Instance.new("Frame")
 visualsTab.Size = UDim2.new(1, 0, 1, 0)
 visualsTab.BackgroundTransparency = 1
@@ -221,128 +296,35 @@ local function createToggle(parent, yPos, label, callback)
     
     toggleButton.MouseButton1Click:Connect(function()
         enabled = not enabled
-        local targetColor = enabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
-        local targetTransp = enabled and 0.1 or 0.4
-        
-        tweenService:Create(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = targetColor,
-            BackgroundTransparency = targetTransp
-        }):Play()
-        
+        toggleButton.BackgroundColor3 = enabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
+        toggleButton.BackgroundTransparency = enabled and 0.1 or 0.4
         callback(enabled)
     end)
+    
+    return toggleButton
 end
 
--- ========== ESP ЛОГИКА (100% РАБОТАЕТ!) ==========
-local ESP = {
-    Murder = {Enabled = false},
-    Sheriff = {Enabled = false},
-    Innocent = {Enabled = false},
-    Self = {Enabled = false},
-    DroppedGun = {Enabled = false}
-}
-
-local function getPlayerRole(plr)
-    if not plr or not plr.Character then return "Innocent" end
-    
-    local placesToCheck = {
-        plr.Character,
-        plr:FindFirstChild("Inventory"),
-        plr:FindFirstChild("Backpack"),
-        plr:FindFirstChild("StarterGear")
-    }
-    
-    for _, container in pairs(placesToCheck) do
-        if container then
-            for _, item in pairs(container:GetChildren()) do
-                if item:IsA("Tool") then
-                    local name = item.Name:lower()
-                    if name:find("knife") or name:find("murder") or 
-                       name:find("кнайф") or name:find("крим") or 
-                       name:find("нож") or name:find("киллер") or
-                       name:find("blade") or name:find("dagger") then
-                        return "Murder"
-                    elseif name:find("gun") or name:find("pistol") or 
-                           name:find("sheriff") or name:find("пистолет") or 
-                           name:find("револьвер") or name:find("revolver") or
-                           name:find("шоты") or name:find("ствол") then
-                        return "Sheriff"
-                    end
-                end
-            end
-        end
-    end
-    
-    return "Innocent"
-end
-
-local function updateESP()
-    for _, plr in pairs(game.Players:GetPlayers()) do
-        if plr.Character and plr.Character:FindFirstChild("Humanoid") then
-            local role = getPlayerRole(plr)
-            local highlight = plr.Character:FindFirstChild("ESP_Highlight")
-            if not highlight then
-                highlight = Instance.new("Highlight")
-                highlight.Name = "ESP_Highlight"
-                highlight.Parent = plr.Character
-                highlight.FillTransparency = 0.3
-                highlight.OutlineTransparency = 0.1
-                highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            end
-            
-            if plr == player and ESP.Self.Enabled then
-                highlight.FillColor = Color3.fromRGB(255, 200, 0)
-                highlight.OutlineColor = Color3.fromRGB(255, 200, 0)
-                highlight.Enabled = true
-            elseif role == "Murder" and ESP.Murder.Enabled then
-                highlight.FillColor = Color3.fromRGB(255, 0, 0)
-                highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-                highlight.Enabled = true
-            elseif role == "Sheriff" and ESP.Sheriff.Enabled then
-                highlight.FillColor = Color3.fromRGB(0, 100, 255)
-                highlight.OutlineColor = Color3.fromRGB(0, 100, 255)
-                highlight.Enabled = true
-            elseif role == "Innocent" and ESP.Innocent.Enabled then
-                highlight.FillColor = Color3.fromRGB(0, 255, 50)
-                highlight.OutlineColor = Color3.fromRGB(0, 255, 50)
-                highlight.Enabled = true
-            else
-                highlight.Enabled = false
-            end
-        end
-    end
-end
-
-game:GetService("RunService").RenderStepped:Connect(updateESP)
-game.Players.PlayerRemoving:Connect(function(plr)
-    if plr.Character then
-        local highlight = plr.Character:FindFirstChild("ESP_Highlight")
-        if highlight then highlight:Destroy() end
-    end
-end)
-
--- ТОГГЛЫ VISUALS
 createToggle(visualsTab, 2, "Подсвети мразь", function(enabled)
-    ESP.Murder.Enabled = enabled
+    ESP.Murder = enabled
 end)
 
 createToggle(visualsTab, 32, "Подсвети шерифа", function(enabled)
-    ESP.Sheriff.Enabled = enabled
+    ESP.Sheriff = enabled
 end)
 
 createToggle(visualsTab, 62, "Бедные невинные", function(enabled)
-    ESP.Innocent.Enabled = enabled
+    ESP.Innocent = enabled
 end)
 
 createToggle(visualsTab, 92, "Покажи себя, пидор", function(enabled)
-    ESP.Self.Enabled = enabled
+    ESP.Self = enabled
 end)
 
 createToggle(visualsTab, 122, "Выпавший ствол", function(enabled)
-    ESP.DroppedGun.Enabled = enabled
+    ESP.DroppedGun = enabled
 end)
 
--- ========== ТРОЛЛЬ-КНОПКА "ВЫЕБАТЬ МАТЬ РАЗРАБОТЧИКА" ==========
+-- ===== ТРОЛЛЬ-КНОПКА =====
 local trollLabel = Instance.new("TextLabel")
 trollLabel.Size = UDim2.new(0.7, 0, 0, 20)
 trollLabel.Position = UDim2.new(0, 0, 0, 155)
@@ -368,7 +350,7 @@ trollCorner.Parent = trollButton
 
 local function createPanicWindow()
     local panicFrame = Instance.new("Frame")
-    panicFrame.Size = UDim2.new(0, 0, 0, 0)
+    panicFrame.Size = UDim2.new(0, 300, 0, 180)
     panicFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
     panicFrame.BackgroundColor3 = Color3.fromRGB(10, 0, 0)
     panicFrame.BackgroundTransparency = 0.15
@@ -430,111 +412,68 @@ local function createPanicWindow()
     panicButton.MouseButton1Click:Connect(function()
         panicFrame:Destroy()
     end)
-    
-    tweenService:Create(panicFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 300, 0, 180)
-    }):Play()
 end
 
 trollButton.MouseButton1Click:Connect(function()
     createPanicWindow()
 end)
 
--- ========== COMBAT (SILENT AIM + ANTI-AIM) ==========
+-- ===== COMBAT =====
 local combatTab = Instance.new("Frame")
 combatTab.Size = UDim2.new(1, 0, 1, 0)
 combatTab.BackgroundTransparency = 1
 combatTab.Visible = false
 combatTab.Parent = tabContainer
 
-local silentAimEnabled = false
-local antiAimEnabled = false
-
 -- SILENT AIM TOGGLE
-local function createSilentAimToggle()
+local function createCombatToggle(parent, yPos, label, callback)
     local labelText = Instance.new("TextLabel")
     labelText.Size = UDim2.new(0.7, 0, 0, 20)
-    labelText.Position = UDim2.new(0, 0, 0, 10)
+    labelText.Position = UDim2.new(0, 0, 0, yPos)
     labelText.BackgroundTransparency = 1
-    labelText.Text = "Аим как у бога"
+    labelText.Text = label
     labelText.TextColor3 = Color3.fromRGB(220, 220, 220)
     labelText.TextSize = 12
     labelText.Font = Enum.Font.Gotham
     labelText.TextXAlignment = Enum.TextXAlignment.Left
-    labelText.Parent = combatTab
+    labelText.Parent = parent
     
     local toggleButton = Instance.new("TextButton")
     toggleButton.Size = UDim2.new(0, 22, 0, 22)
-    toggleButton.Position = UDim2.new(0.85, 0, 0, 9)
+    toggleButton.Position = UDim2.new(0.85, 0, 0, yPos - 1)
     toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
     toggleButton.BackgroundTransparency = 0.4
     toggleButton.Text = ""
-    toggleButton.Parent = combatTab
+    toggleButton.Parent = parent
     
     local toggleCorner = Instance.new("UICorner")
     toggleCorner.CornerRadius = UDim.new(0, 4)
     toggleCorner.Parent = toggleButton
     
+    local enabled = false
+    
     toggleButton.MouseButton1Click:Connect(function()
-        silentAimEnabled = not silentAimEnabled
-        local targetColor = silentAimEnabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
-        local targetTransp = silentAimEnabled and 0.1 or 0.4
-        
-        tweenService:Create(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = targetColor,
-            BackgroundTransparency = targetTransp
-        }):Play()
+        enabled = not enabled
+        toggleButton.BackgroundColor3 = enabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
+        toggleButton.BackgroundTransparency = enabled and 0.1 or 0.4
+        callback(enabled)
     end)
 end
 
--- ANTI-AIM TOGGLE
-local function createAntiAimToggle()
-    local labelText = Instance.new("TextLabel")
-    labelText.Size = UDim2.new(0.7, 0, 0, 20)
-    labelText.Position = UDim2.new(0, 0, 0, 45)
-    labelText.BackgroundTransparency = 1
-    labelText.Text = "Anti-Aim (вертеться)"
-    labelText.TextColor3 = Color3.fromRGB(220, 220, 220)
-    labelText.TextSize = 12
-    labelText.Font = Enum.Font.Gotham
-    labelText.TextXAlignment = Enum.TextXAlignment.Left
-    labelText.Parent = combatTab
-    
-    local toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 22, 0, 22)
-    toggleButton.Position = UDim2.new(0.85, 0, 0, 44)
-    toggleButton.BackgroundColor3 = Color3.fromRGB(50, 50, 60)
-    toggleButton.BackgroundTransparency = 0.4
-    toggleButton.Text = ""
-    toggleButton.Parent = combatTab
-    
-    local toggleCorner = Instance.new("UICorner")
-    toggleCorner.CornerRadius = UDim.new(0, 4)
-    toggleCorner.Parent = toggleButton
-    
-    toggleButton.MouseButton1Click:Connect(function()
-        antiAimEnabled = not antiAimEnabled
-        local targetColor = antiAimEnabled and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(50, 50, 60)
-        local targetTransp = antiAimEnabled and 0.1 or 0.4
-        
-        tweenService:Create(toggleButton, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            BackgroundColor3 = targetColor,
-            BackgroundTransparency = targetTransp
-        }):Play()
-    end)
-end
+createCombatToggle(combatTab, 10, "Аим как у бога", function(enabled)
+    silentAimEnabled = enabled
+end)
 
-createSilentAimToggle()
-createAntiAimToggle()
+createCombatToggle(combatTab, 45, "Anti-Aim (вертеться)", function(enabled)
+    antiAimEnabled = enabled
+end)
 
--- ========== ЛОГИКА SILENT AIM (ПК + ТЕЛЕФОН) ==========
-local isMobile = game:GetService("UserInputService").TouchEnabled
-
+-- ===== SILENT AIM =====
 local function isAimActive()
     if isMobile then
         return true
     else
-        return game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift)
+        return userInput:IsKeyDown(Enum.KeyCode.LeftShift)
     end
 end
 
@@ -563,19 +502,7 @@ local function getNearestMurderer()
     return nearest
 end
 
--- ========== ЛОГИКА SILENT AIM ==========
-local isMobile = game:GetService("UserInputService").TouchEnabled
-
-local function isAimActive()
-    if isMobile then
-        return true
-    else
-        return game:GetService("UserInputService"):IsKeyDown(Enum.KeyCode.LeftShift)
-    end
-end
-
--- ========== ОСНОВНОЙ ЦИКЛ АИМА ==========
-game:GetService("RunService").RenderStepped:Connect(function()
+runService.RenderStepped:Connect(function()
     if silentAimEnabled and isAimActive() then
         local target = getNearestMurderer()
         if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
@@ -587,4 +514,111 @@ game:GetService("RunService").RenderStepped:Connect(function()
             end
         end
     end
+    
+    if antiAimEnabled then
+        local character = player.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            local hrp = character.HumanoidRootPart
+            local currentRot = hrp.Orientation.Y
+            local newRot = currentRot + 80 * (1/60)
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(newRot), 0)
+        end
+    end
 end)
+
+-- ===== ANANAS =====
+local ananasTab = Instance.new("Frame")
+ananasTab.Size = UDim2.new(1, 0, 1, 0)
+ananasTab.BackgroundTransparency = 1
+ananasTab.Visible = false
+ananasTab.Parent = tabContainer
+
+local nameLabel = Instance.new("TextLabel")
+nameLabel.Size = UDim2.new(1, 0, 0, 24)
+nameLabel.Position = UDim2.new(0, 0, 0, 30)
+nameLabel.BackgroundTransparency = 1
+nameLabel.Text = "made by kebabich"
+nameLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+nameLabel.TextSize = 16
+nameLabel.Font = Enum.Font.GothamBold
+nameLabel.Parent = ananasTab
+
+local subLabel = Instance.new("TextLabel")
+subLabel.Size = UDim2.new(1, 0, 0, 18)
+subLabel.Position = UDim2.new(0, 0, 0, 58)
+subLabel.BackgroundTransparency = 1
+subLabel.Text = "subscribe meee :)"
+subLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+subLabel.TextSize = 12
+subLabel.Font = Enum.Font.Gotham
+subLabel.Parent = ananasTab
+
+local ananasEmoji = Instance.new("TextLabel")
+ananasEmoji.Size = UDim2.new(0, 30, 0, 30)
+ananasEmoji.Position = UDim2.new(0.5, -15, 0, 100)
+ananasEmoji.BackgroundTransparency = 1
+ananasEmoji.Text = "🍍"
+ananasEmoji.TextScaled = true
+ananasEmoji.Font = Enum.Font.GothamBold
+ananasEmoji.Parent = ananasTab
+
+runService.Heartbeat:Connect(function()
+    if ananasEmoji and ananasEmoji.Parent then
+        local scale = 1 + math.sin(tick() * 2) * 0.08
+        ananasEmoji.Size = UDim2.new(0, 30 * scale, 0, 30 * scale)
+    end
+end)
+
+-- ===== ПЕРЕКЛЮЧЕНИЕ ВКЛАДОК =====
+for cat, btn in pairs(catButtons) do
+    btn.MouseButton1Click:Connect(function()
+        if cat == activeTab then return end
+        activeTab = cat
+
+        for _, b in pairs(catButtons) do
+            b.TextColor3 = Color3.fromRGB(130, 130, 130)
+        end
+        btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+        for _, child in pairs(tabContainer:GetChildren()) do
+            if child:IsA("Frame") then
+                child.Visible = false
+            end
+        end
+
+        if cat == "VISUALS" then
+            visualsTab.Visible = true
+        elseif cat == "COMBAT" then
+            combatTab.Visible = true
+        elseif cat == "ANANAS" then
+            ananasTab.Visible = true
+        end
+    end)
+end
+
+-- ===== АКТИВАЦИЯ UI =====
+startButton.MouseButton1Click:Connect(function()
+    welcomeFrame.Visible = false
+    mainUI.Visible = true
+end)
+
+-- ===== ОТКРЫТИЕ/ЗАКРЫТИЕ ПО КНОПКЕ =====
+toggleButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    if menuVisible then
+        mainFrame.Visible = true
+        blur.Size = 10
+    else
+        mainFrame.Visible = false
+        blur.Size = 0
+    end
+end)
+
+-- ===== ЗАКРЫТИЕ ПО ESC =====
+userInput.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Escape and menuVisible then
+        toggleButton.MouseButton1Click:Fire()
+    end
+end)
+
+print("[KEBABICH] СКРИПТ ЗАГРУЖЕН, ВСЁ РАБОТАЕТ, СУКА!")
